@@ -1,0 +1,22 @@
+{
+  "name": "webbluetooth",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "browserify": "^16.2.2",
+    "cookie-parser": "^1.4.3",
+    "cors": "^2.8.4",
+    "ejs": "^2.6.1",
+    "express": "^4.16.3",
+    "redis": "^2.8.0",
+    "request": "^2.87.0",
+    "socket.io": "^2.1.1",
+    "spotify-web-api-js": "^0.24.0"
+  }
+}

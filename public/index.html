@@ -1,0 +1,1376 @@
+<!doctype html>
+<html>
+  <head>
+    <title>BLE devices & Spotify</title>
+
+    <style type="text/css">
+      #login, #loggedin {
+        display: none;
+      }
+      .text-overflow {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        width: 500px;
+      }
+      .noborder, .noborder tr, .noborder th, .noborder td {
+        border: none;
+      }
+      li {
+        height: 20px;
+      }
+      .login-page {
+          height: 200px;
+          width: 400px;
+
+          position: fixed;
+          top: 30%;
+          left: 50%;
+          margin-top: -100px;
+          margin-left: -160px;
+      }
+
+      /* The switch - the box around the slider */
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 60px;
+        height: 28px;
+      }
+
+      /* Hide default HTML checkbox */
+      .switch input {display:none;}
+
+      /* The slider */
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #d8d6d8;
+        -webkit-transition: .4s;
+        transition: .4s;
+      }
+
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 20px;
+        width: 20px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        -webkit-transition: .4s;
+        transition: .4s;
+      }
+
+      input:checked + .slider {
+        background-color: #b166d1;
+      }
+
+      input:focus + .slider {
+        box-shadow: 0 0 1px #2196F3;
+      }
+
+      input:checked + .slider:before {
+        -webkit-transform: translateX(30px);
+        -ms-transform: translateX(30px);
+        transform: translateX(30px);
+      }
+
+      /* Rounded sliders */
+      .slider.round {
+        border-radius: 28px;
+      }
+
+      .slider.round:before {
+        border-radius: 50%;
+      }
+
+    </style>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/3.0.3/normalize.css">
+    <link rel="stylesheet" href="https://cdn.rawgit.com/milligram/milligram/master/dist/milligram.min.css">
+  </head>
+
+  <body>
+    <div class="container">
+      <div id="login">
+        <div class="login-page">
+          <img src='sp_logo.png' height="100" width="250">
+          <p></p>
+          <input type="button" onclick="location.href = '/login';" value="Log in with Spotify">
+          <p>________________________________________________________</br></br><b>Join an existing party</b></p>
+          <script>
+            function joinParty()
+            {
+              location.href='/addPartyUser/' + document.getElementById("login-session-token").value + "/" + document.getElementById("login-name").value;
+              return false;
+            }
+            </script>
+            <form onSubmit="return joinParty();">
+            Session token: <input type="text" id="login-session-token" autocomplete="off" required="required"> Your name: <input type="text" id="login-name" autocomplete="off" required="required" pattern="^[0-9-_A-Za-z]*$" title="Letters, digits, -, _"> <input type="submit" value="Join">
+            </form>
+        </div>
+      </div>
+      <div id="loggedin">
+        <div id="user-profile">
+    </div>
+
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/2.0.0-alpha.1/handlebars.min.js"></script>
+    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+    <script id="user-profile-template" type="text/x-handlebars-template">
+      <p></p>
+      <h1>BLE devices & Spotify</h1>
+      <img src='sp_logo.png' height="100" width="250">
+      <div class="media">
+        <div class="media-body">
+          <table>
+            <tr>
+              <td colspan="2">
+                <h2>User information</h2>
+              </td>
+              <td colspan="2">
+                <h2>Now playing</h2>
+              </td>
+            </tr>
+            <tr>
+              <td width="14%">
+                <span ng-if="images.length > 0">
+                   {{images.0.url}}
+                </span>
+                <span ng-if="images.length == 0">
+                   <img src='https://qph.fs.quoracdn.net/main-qimg-7ca600a4562ef6a81f4dc2bd5c99fee9-c' width="100px" heigth="100px">
+                </span>
+              </td>
+              <td width="35%">
+                <ul style="list-style: none;">
+                  <li id="profile-username"><b>Username: </b>{{id}}</li>
+                  <li id="profile-email"><b>Email: </b>{{email}}</li>
+                  <li id="profile-country"><b>Country: </b>{{country}}</li>
+                </ul>
+              </td>
+              <td id="song-cover" rowspan="3" width="15%">&nbsp;</td>
+              <td width="40%">
+                <ul style="list-style: none;">
+                  <li id="song-name"><b>Title: </b></li>
+                  <li id="song-artists"><b>Artist(s): </b></li>
+                  <li id="song-album"><b>Album: </b></li>
+                </ul>
+              </td>
+            </tr>
+          </table>
+          <table>
+            <tr>
+              <td colspan="2">
+                <h2>Mood</h2>
+              </td>
+              <td colspan="2">
+                <div style="float:left;"><h2>Party mode&nbsp;&nbsp;&nbsp;</h2></div><div style="float:left; margin-top:8px;"><label class="switch"><input id="checkbox-party" type="checkbox"><span class="slider"></span></label></div>
+              </td>
+            </tr>
+            <tr>
+              <td id="mood-cover" rowspan="3" width="14%">
+              </td>
+              <td width="35%">
+                <ul style="list-style: none;">
+                  <li id="mood-mode"><b>Mode: </b>disabled</li>
+                  <li id="mood-mood">Please add 2 Thingys and a light bulb.</li>
+                  <li id="mood-playlist"><b></b></li>
+                </ul>
+              </td>
+              <td style="vertical-align:top" rowspan="3" width="15%">
+                <span>Session token: </span>
+              </br>
+                <span style="font-size:30px;" id="party-token"></span>
+              </td>
+              <td style="vertical-align:top;" width="40%">
+                <ul id="party-users" style="list-style: none;">
+                </ul>
+              </td>
+            </tr>
+          </table>
+        </div>
+        <div>
+          <img src='bluetooth_logo.png' height="70" width="300">
+          <p></p>
+          <h2>Bluetooth devices</h2>
+          <input id="button-add-thingy" type='button' value='Add Thingy'>
+          <input id="button-add-bulb" type='button' value='Add light bulb'>
+          <table id="bluetooth-devices-table">
+            <tr><th style="width:5%;">Type</th><th style="width:30%;">Name</th><th style="width:30%;">Address</th><th style="width:35%;">Role</th></tr>
+          </table>
+        </div>
+      </div>
+    </script>
+    <script src="notify.js"></script>
+    <script src="bundle.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.js"></script>
+    <script>
+      var Spotify = require('spotify-web-api-js');
+      var spotifyApi = new Spotify();
+      var isPlaying;                      // true if a song is playing on the active device
+      var spotifyCurrentDevice;           // active device
+      var ioServer, ioClient;
+      var partyUsersSockets = new Map();  // Map(String SocketID, String Name)
+      var currentTrack = {cover: "", name: "", artists: "", album: ""};
+      var partyModeSwitch = false;
+
+      (function() {
+
+        // get parameters using the URL
+        function getHashParams() {
+          var hashParams = {};
+          var e, r = /([^&;=]+)=?([^&;]*)/g,
+              q = window.location.hash.substring(1);
+          while ( e = r.exec(q)) {
+             hashParams[e[1]] = decodeURIComponent(e[2]);
+          }
+          return hashParams;
+        }
+
+        var userProfileSource = document.getElementById('user-profile-template').innerHTML,
+            userProfileTemplate = Handlebars.compile(userProfileSource),
+            userProfilePlaceholder = document.getElementById('user-profile');
+
+        var devicesTable = document.getElementById('bluetooth-devices-table');
+
+        var params = getHashParams();
+
+        var access_token = params.access_token,
+            refresh_token = params.refresh_token,
+            session_token = params.session_token,
+            error = params.error;
+
+        if (error) {
+          alert('There was an error during the authentication');
+        } else {
+          if (access_token) {
+
+            $.ajax({
+                url: 'https://api.spotify.com/v1/me',
+                headers: {
+                  'Authorization': 'Bearer ' + access_token
+                },
+                success: function(response) {
+                  // connection successful
+
+                  userProfilePlaceholder.innerHTML = userProfileTemplate(response);
+
+                  // websockets
+                  ioServer = io.connect("http://localhost:7777");
+
+                  document.getElementById('button-add-thingy').addEventListener('pointerup', function(event){
+                    addThingyIntoTable(document.getElementById('bluetooth-devices-table'));
+                  });
+
+                  document.getElementById('button-add-bulb').addEventListener('pointerup', function(event){
+                    addBulbIntoTable(document.getElementById('bluetooth-devices-table'));
+                  });
+
+                  document.getElementById('checkbox-party').addEventListener('change', function(event){
+                    if(this.checked){
+                      partyModeSwitch = true;
+                      ioServer.emit("party_mode_change", {token: session_token, state: true});
+                    }
+                    else{
+                      partyModeSwitch = false;
+                      ioServer.emit("party_mode_change", {token: session_token, state: false});
+                    }
+                  });
+
+                  // Spotify: init
+                  spotifyApi.setAccessToken(access_token);
+
+                  spotifyApi.getMyDevices()
+                  .then(
+                    function(data){
+                      for(let i = 0; i < data.length; i++){
+                        if(data[i].isActive == true){
+                          spotifyCurrentDevice = data[i].id;
+                        }
+                      }
+                    },
+                    function(error){}
+                  )
+
+                  // check whether a song is playing or not
+                  spotifyApi.getMyCurrentPlaybackState()
+                  .then(
+                    function(data){
+                      if(isPlaying != undefined){
+                        isPlaying = data.is_playing;
+                      } else {
+                        isPlaying = true;
+                      }
+                    },
+                    function(error){console.log(error);}
+                  );
+
+                  window.setInterval(function(){
+                    // gets the current track every 2 seconds
+                    spotifyApi.getMyCurrentPlayingTrack()
+                    .then(
+                      function(data){
+                        if (data.item != undefined){
+
+                          // if the track changed, notify the party users, then update the data on screen
+                          if(!document.getElementById('song-name').innerHTML.includes(sliceNowPlaying(data.item.name))){
+                            updatePartyUsers(data.item.album.images[1].url, data.item.name, data.item.artists, data.item.album.name);
+                          }
+                          document.getElementById('song-cover').innerHTML = "<img src=" + data.item.album.images[1].url + " height='100' width='100'>";
+                          document.getElementById('song-name').innerHTML = "<b>Title: </b>" + sliceNowPlaying(data.item.name);
+
+                          let artists = data.item.artists;
+                          let listArtists = "";
+
+                          for(let i = 0; i < artists.length; i++){
+                            if(i==0){
+                              listArtists += artists[i].name;
+                            }
+                            else{
+                              listArtists += ", " + artists[i].name;
+                            }
+                          }
+                          document.getElementById('song-artists').innerHTML = "<b>Artist(s): </b>" + sliceNowPlaying(listArtists);
+                          document.getElementById('song-album').innerHTML = "<b>Album: </b>" + sliceNowPlaying(data.item.album.name);
+
+                          trackDuration = parseInt(data.item.duration_ms);
+
+                          currentTrack.cover = data.item.album.images[1].url;
+                          currentTrack.name = data.item.name;
+                          currentTrack.artists = listArtists;
+                          currentTrack.album = data.item.album.name;
+                      }
+                    },
+                    function(err){console.log(err);});
+                  }, 2000);
+
+                  // use the previously generated token as Party Token
+                  document.getElementById("party-token").innerHTML = "<b>" + session_token + "</b>";
+
+                  // websockets
+                  // Host -> Server, notifies the server that a new host/main user has connected
+                  ioServer.emit("main_session_token", {token: session_token, state: partyModeSwitch});
+
+                  // PartyUser -> Host, add a new party user
+                  ioServer.on("addPartyUser", function(data){
+                    console.log("index.html: on add party user");
+                    console.log(data);
+                    ioServer.emit("update_party_user", {socket: data.socket, cover: currentTrack.cover, name: currentTrack.name, artists: currentTrack.artists, album: currentTrack.album});
+                    addPartyUser(data.name, data.socket);
+                  });
+
+                  // PartyUser -> Host, downvote
+                  ioServer.on("vote_down", function(data){
+                    console.log("vote down");
+                    if(partyModeSwitch){
+                      $.notify("New vote: "+data.name, {className: "error", autoHide: true, autoHideDelay: 3000});
+                      document.getElementById('party-vote-'+data.name).innerHTML = "&nbsp;&nbsp;&nbsp;❌❌❌"
+                    }
+                    else{
+                      ioServer.emit("party_mode_disabled", {socket: data.socket});
+                    }
+                  });
+
+                  // PartyUser -> Host, upvote
+                  ioServer.on("vote_up", function(data){
+                    if(partyModeSwitch){
+                      $.notify("New vote: "+data.name, {className: "success", autoHide: true, autoHideDelay: 3000});
+                      document.getElementById('party-vote-'+data.name).innerHTML = "&nbsp;&nbsp;&nbsp;✅✅✅"
+                    }
+                    else{
+                      ioServer.emit("party_mode_disabled", {socket: data.socket});
+                    }
+                  });
+
+                  // Server -> Hôte, if a party user has disconnected
+                  ioServer.on("party_user_disconnected", function(data){
+                    $.notify(partyUsersSockets.get(data.socket)+" left the party.", {className: "info", autoHide: true, autoHideDelay: 5000});
+                    document.getElementById("party-users").removeChild(document.getElementById("party-user-"+partyUsersSockets.get(data.socket)));
+                    partyUsersSockets.delete(data.socket);
+                  });
+
+
+                  $('#login').hide();
+                  $('#loggedin').show();
+                }
+            });
+
+
+          } else {
+              // render initial screen
+              $('#login').show();
+              $('#loggedin').hide();
+          }
+        }
+      })();
+
+      // shorten strings if they're too long to be displayed
+      function sliceNowPlaying(str){
+        if(str.length >= 40){
+          return (str.slice(0,37) + "...");
+        } else {
+          return str;
+        }
+      }
+
+      // generates a party token
+      function generatePartyToken(length){
+        var str = "";
+        for (let i = 0; i < length; i++){
+          str += Math.floor(Math.random() * 10).toString(10);
+        }
+        return str;
+      }
+
+      var voteCounter = 0;
+
+      // add a new party user
+      function addPartyUser(name, socketID){
+        document.getElementById('party-users').innerHTML += "<li id ='party-user-" + name + "'>"+ name + " &nbsp;&nbsp;&nbsp;| <span id='party-vote-" + name + "'></span>"+"</li>";
+        document.getElementById('party-vote-'+name).innerHTML = "&nbsp;&nbsp;&nbsp;No vote";
+        partyUsersSockets.set(socketID, name);
+        $.notify(name+" joined your party.", {className: "success", autoHide: true, autoHideDelay: 5000});
+      }
+
+      // update party users whenever the current track changes
+      function updatePartyUsers(coverURL, trackName, artists, albumName){
+        let listArtists = "";
+        for(let i = 0; i < artists.length; i++){
+          if(i==0){
+            listArtists += artists[i].name;
+          }
+          else{
+            listArtists += ", " + artists[i].name;
+          }
+        }
+
+        partyUsersSockets.forEach((value, key, map) => {
+          ioServer.emit("update_party_user", {socket: key, cover: coverURL, name: trackName, artists: listArtists, album: albumName});
+        });
+        resetVotes();
+      }
+
+      // reset party votes
+      function resetVotes(){
+        partyUsersSockets.forEach((value, key, map) => {
+          document.getElementById("party-vote-"+value).innerHTML = "&nbsp;&nbsp;&nbsp;No vote";
+        });
+        voteCounter = 0;
+      }
+
+
+      // THINGY
+      var devices = [];
+      var devicesThingy = [];
+      var devicesBulb = [];
+      var lastPressedFirstThingy = 0, lastReleasedFirstThingy = 0;
+      var lastPressedSecondThingy = 0, lastReleasedSecondThingy = 0;
+      var lateralTiltActivated = false, verticalTiltActivated = false;
+      var trackProgress = 0, trackDuration = 0;
+      var moodMode = 0, moodIndex = 0;
+      var temperature, moodAutoPlaylist, moodAutoPreset;
+      var bulbPreset = 0;
+      var trackBeforeMood;
+
+      // mood settings
+      let paramPlaylist = [
+        {
+          mood:"Sunny",
+          playlistName: "Tropical House - Filtr Sweden",
+          uri: "spotify:user:sonymusicentertainment:playlist:2SRbIs0eBQwHeTP7kErjwo",
+          cover: "<img width='100px' height='100px' src='https://pl.scdn.co/images/pl/default/aaf9962f190a947cfd919fcdce4c1f602084668e'>",
+          bulb: 0
+        },
+        {
+          mood:"Dream",
+          playlistName: "Trance 100 - Armada Music",
+          uri: "spotify:user:armadamusicofficial:playlist:2iTMQ36cvjhxgIYGv7uld5",
+          cover: "<img width='100px' height='100px' src='https://pl.scdn.co/images/pl/default/b5829153e9fa99f3b67bc28e4f7a1786f3074247'>",
+          bulb: 19
+        },
+        {
+          mood:"Sad",
+          playlistName: "Alone again - Spotify",
+          uri: "spotify:user:spotify:playlist:37i9dQZF1DWX83CujKHHOn",
+          cover: "<img width='100px' height='100px' src='https://i.scdn.co/image/ac83f23be2d8c4d45a8e6374c29720f2771b07e9'>",
+          bulb: 26
+        },
+        {
+          mood:"Sport motivation",
+          playlistName: "Gym music & Motivational music - Neffex",
+          uri: "spotify:user:neffexmusic:playlist:3cIBg0kQGtPZkawFHbEKHO",
+          cover: "<img width='100px' height='100px' src='https://pl.scdn.co/images/pl/default/396025e1ec1dcc65168bda5bebba1f2eeef60153'>",
+          bulb: 9
+        },
+        {
+          mood:"Angry",
+          playlistName: "Angerfist Hardcore - Angerfist",
+          uri: "spotify:user:angerfist_official:playlist:0AvS4c3nQQ1U923jm2MZRs",
+          cover: "<img width='100px' height='100px' src='https://pl.scdn.co/images/pl/default/df6889fdd940f62e6845bd574cfb7694c53523bc'>",
+          bulb: 1
+        },
+        {
+          mood:"Focus",
+          playlistName: "Peaceful piano - Spotify",
+          uri: "spotify:user:spotify:playlist:37i9dQZF1DX4sWSpwq3LiO",
+          cover: "<img width='100px' height='100px' src='https://i.scdn.co/image/56228f9353b23405516a6ea8af1c22083f450b57'>",
+          bulb: 25
+        },
+        {
+          mood:"Nostalgia",
+          playlistName: "All Out 00s - Spotify",
+          uri: "spotify:user:spotify:playlist:37i9dQZF1DX4o1oenSJRJd",
+          cover: "<img width='100px' height='100px' src='https://i.scdn.co/image/2b24acba836cb2614b0c8457dd7598d12bd3f385'>",
+          bulb: 24
+        },
+        {
+          mood:"Vacation",
+          playlistName: "Esenciales - Spotify",
+          uri: "spotify:user:spotify:playlist:37i9dQZF1DX3omIq8ziEt6",
+          cover: "<img width='100px' height='100px' src='https://i.scdn.co/image/fb37d01bad74e283bab7d71d4be4290c04f17a19'>",
+          bulb: 0
+        },
+        {
+          mood:"Party",
+          playlistName: "Hardwell On Air Radio - Hardwell",
+          uri: "spotify:user:hardwellofficial:playlist:6dBUVyjBcjtrSQ0jEURWmS",
+          cover: "<img width='100px' height='100px' src='https://pl.scdn.co/images/pl/default/6591f09719895e18d5ce9b79d34572f248693788'>",
+          bulb: 48
+        },
+        {
+          mood:"Classical",
+          playlistName: "Classical Essentials - Spotify",
+          uri: "spotify:user:spotify:playlist:37i9dQZF1DWWEJlAGA9gs0",
+          cover: "<img width='100px' height='100px' src='https://i.scdn.co/image/3f48aae3f3e2b8aaf6c424747b795b9171b05988'>",
+          bulb: 0
+        }
+      ];
+
+      // Thingy's Bluetooth caracteristics and services (notifications)
+      let paramThingy = [
+        // Temperature
+        {
+          serviceUUID: "ef680200-9b35-4933-9b10-52ffa9740042",
+          characteristicUUID: "ef680201-9b35-4933-9b10-52ffa9740042",
+          characteristicName: "Temperature",
+          characteristicUnit: "°"
+        },
+        // Pressure
+        {
+          serviceUUID: "ef680200-9b35-4933-9b10-52ffa9740042",
+          characteristicUUID: "ef680202-9b35-4933-9b10-52ffa9740042",
+          characteristicName: "Pressure",
+          characteristicUnit: "hPa"
+        },
+        // Humidity
+        {
+          serviceUUID: "ef680200-9b35-4933-9b10-52ffa9740042",
+          characteristicUUID: "ef680203-9b35-4933-9b10-52ffa9740042",
+          characteristicName: "Humidity",
+          characteristicUnit: "%"
+        },
+        // Gas: eCO2
+        {
+          serviceUUID: "ef680200-9b35-4933-9b10-52ffa9740042",
+          characteristicUUID: "ef680204-9b35-4933-9b10-52ffa9740042",
+          characteristicName: "Gas (eCO2)",
+          characteristicUnit: "ppm"
+        },
+        // Gas: TVOC
+        {
+          serviceUUID: "ef680200-9b35-4933-9b10-52ffa9740042",
+          characteristicUUID: "ef680204-9b35-4933-9b10-52ffa9740042",
+          characteristicName: "Gas (TVOC)",
+          characteristicUnit: "ppb"
+        },
+        // Color
+        {
+          serviceUUID: "ef680200-9b35-4933-9b10-52ffa9740042",
+          characteristicUUID: "ef680205-9b35-4933-9b10-52ffa9740042",
+          characteristicName: "Color",
+          characteristicUnit: ""
+        },
+        // Button
+        {
+          serviceUUID: "ef680300-9b35-4933-9b10-52ffa9740042",
+          characteristicUUID: "ef680302-9b35-4933-9b10-52ffa9740042",
+          characteristicName: "Button",
+          characteristicUnit: ""
+        },
+        // Gravity vector
+        {
+          serviceUUID: "ef680400-9b35-4933-9b10-52ffa9740042",
+          characteristicUUID: "ef68040a-9b35-4933-9b10-52ffa9740042",
+          characteristicName: "Gravity vector",
+          characteristicUnit: ""
+        }
+      ];
+
+      // light bulb settings
+      let paramBulb = [
+        {
+          type: "preset",
+          name: "Progressive rainbow",
+          value: 37
+        },
+        {
+          type: "preset",
+          name: "Red alarm",
+          value: 38
+        },
+        {
+          type: "preset",
+          name: "Green alarm",
+          value: 39
+        },
+        {
+          type: "preset",
+          name: "Blue alarm",
+          value: 40
+        },
+        {
+          type: "preset",
+          name: "Yellow alarm",
+          value: 41
+        },
+        {
+          type: "preset",
+          name: "Sky blue alarm",
+          value: 42
+        },
+        {
+          type: "preset",
+          name: "Purple alarm",
+          value: 43
+        },
+        {
+          type: "preset",
+          name: "White alarm",
+          value: 44
+        },
+        {
+          type: "preset",
+          name: "Red-green cycle",
+          value: 45
+        },
+        {
+          type: "preset",
+          name: "Red-blue cycle",
+          value: 46
+        },
+        {
+          type: "preset",
+          name: "Blue-green cycle",
+          value: 47
+        },
+        {
+          type: "preset",
+          name: "Rainbow flash",
+          value: 48
+        },
+        {
+          type: "preset",
+          name: "Red flash",
+          value: 49
+        },
+        {
+          type: "preset",
+          name: "Green flash",
+          value: 50
+        },
+        {
+          type: "preset",
+          name: "Blue flash",
+          value: 51
+        },
+        {
+          type: "preset",
+          name: "Yellow flash",
+          value: 52
+        },
+        {
+          type: "preset",
+          name: "Sky blue flash",
+          value: 53
+        },
+        {
+          type: "preset",
+          name: "Purple flash",
+          value: 54
+        },
+        {
+          type: "preset",
+          name: "White flash",
+          value: 55
+        },
+        {
+          type: "preset",
+          name: "Non progressive rainbow",
+          value: 56
+        },
+        {
+          type: "rgb",
+          name: "Red",
+          value: [255,0,0]
+        },
+        {
+          type: "rgb",
+          name: "Green",
+          value: [0,255,0]
+        },
+        {
+          type: "rgb",
+          name: "Blue",
+          value: [0,0,255]
+        },
+        {
+          type: "rgb",
+          name: "Pink",
+          value: [255,147,228]
+        },
+        {
+          type: "rgb",
+          name: "Purple",
+          value: [184,6,224]
+        },
+        {
+          type: "rgb",
+          name: "Orange",
+          value: [237,145,33]
+        },
+        {
+          type: "rgb",
+          name: "Sky blue",
+          value: [42,226,247]
+        }
+      ];
+
+      // add a new Thingy
+      function addThingyIntoTable(table){
+        navigator.bluetooth.requestDevice({filters: [{namePrefix:"Thingy"}],
+                                          optionalServices: [
+                                            "ef680200-9b35-4933-9b10-52ffa9740042",
+                                            "ef680300-9b35-4933-9b10-52ffa9740042",
+                                            "ef680500-9b35-4933-9b10-52ffa9740042",
+                                            "ef680400-9b35-4933-9b10-52ffa9740042"
+                                          ]})
+        .then(device => {
+          if (!devicesThingy.includes(device)){devicesThingy.push(device);}
+          if (!devices.includes(device)){devices.push(device);}
+          if(devicesThingy.length == 1){
+            thingyFirstScenario(device);
+            insertRow(table, device, "Player");
+            spotifyApi.getMyCurrentPlaybackState()
+            .then(
+              function(data){
+                if(data.is_playing != undefined){
+                  isPlaying = data.is_playing;
+                }
+                thingyWriteLEDColorConstant(device, (isPlaying) ? [0,0,255] : [255,0,0]);
+              }
+            );
+          }
+          else if(devicesThingy.length == 2){
+            thingyWriteLEDColorConstant(device, [0,255,0]);
+            thingySecondScenario(device);
+            insertRow(table, device, "Mood");
+          }
+        });
+      }
+
+      // add a new lightbulb
+      function addBulbIntoTable(table){
+        navigator.bluetooth.requestDevice({
+          filters: [{
+            namePrefix: 'LEDBLE',
+            services: ['0000ffe5-0000-1000-8000-00805f9b34fb']
+          }]
+        })
+        .then(device => {
+          if (!devicesBulb.includes(device)){devicesBulb.push(device);}
+          if (!devices.includes(device)){devices.push(device);}
+          insertRow(table, device, "Bulb");
+        });
+      }
+
+      function insertRow(table, device, role){
+        var tr = table.insertRow(table.rows.length);
+        var type = tr.insertCell(0);
+        var name = tr.insertCell(1);
+        var addr = tr.insertCell(2);
+        var val = tr.insertCell(3);
+        var index = table.rows.length-2;
+
+        type.innerHTML = (device.name.includes("Thingy")) ? "◼️" : "💡";
+        name.innerHTML = device.name;
+        addr.innerHTML = device.id;
+        val.innerHTML = role;
+      }
+
+      // First thingy : Player
+      function thingyFirstScenario(device){
+        device.gatt.connect()
+        .then(server => {
+          return server.getPrimaryService(paramThingy[6].serviceUUID);
+        })
+        .then(service => {
+          return service.getCharacteristic(paramThingy[6].characteristicUUID);
+        })
+        .then(characteristic => {
+          var myCharacteristic = characteristic;
+          return myCharacteristic.startNotifications().then(_ => {
+            myCharacteristic.addEventListener('characteristicvaluechanged',
+                function(event){
+                  thingyHandleNotifications(event, 1, paramThingy[6].characteristicName, paramThingy[6].characteristicUnit);
+                });
+          });
+        })
+        .catch(error => {
+          console.log(error);
+        });
+        device.gatt.connect()
+        .then(server => {
+          return server.getPrimaryService(paramThingy[7].serviceUUID);
+        })
+        .then(service => {
+          return service.getCharacteristic(paramThingy[7].characteristicUUID);
+        })
+        .then(characteristic => {
+          var myCharacteristic = characteristic;
+          return myCharacteristic.startNotifications().then(_ => {
+            myCharacteristic.addEventListener('characteristicvaluechanged',
+                function(event){
+                  thingyHandleNotifications(event, 1, paramThingy[7].characteristicName, paramThingy[7].characteristicUnit);
+                });
+          });
+        })
+        .catch(error => {
+          console.log(error);
+        });
+      }
+
+      // Second Thingy: Moods
+      function thingySecondScenario(device){
+        // Button
+        device.gatt.connect()
+        .then(server => {
+          return server.getPrimaryService(paramThingy[6].serviceUUID);
+        })
+        .then(service => {
+          return service.getCharacteristic(paramThingy[6].characteristicUUID);
+        })
+        .then(characteristic => {
+          var myCharacteristic = characteristic;
+          return myCharacteristic.startNotifications().then(_ => {
+            myCharacteristic.addEventListener('characteristicvaluechanged',
+                function(event){
+                  thingyHandleNotifications(event, 2, paramThingy[6].characteristicName, paramThingy[6].characteristicUnit);
+                });
+          });
+        })
+        .catch(error => {
+          console.log(error);
+        });
+
+        // Temperature
+        device.gatt.connect()
+        .then(server => {
+          return server.getPrimaryService(paramThingy[0].serviceUUID);
+        })
+        .then(service => {
+          return service.getCharacteristic(paramThingy[0].characteristicUUID);
+        })
+        .then(characteristic => {
+          var myCharacteristic = characteristic;
+          return myCharacteristic.startNotifications().then(_ => {
+            myCharacteristic.addEventListener('characteristicvaluechanged',
+                function(event){
+                  thingyHandleNotifications(event, 2, paramThingy[0].characteristicName, paramThingy[0].characteristicUnit);
+                });
+          });
+        })
+        .catch(error => {
+          console.log(error);
+        });
+      }
+
+      // returns values within the RGB range [0,255]
+      function rgbRange(array){
+        let res = [];
+        for (let i = 0; i < array.length; i++){
+          if(array[i] > 255){
+            res[i] = 255;
+          } else if(array[i] < 0){
+            res[i] = 0;
+          } else {
+            res[i] = array[i];
+          }
+        }
+        return res;
+      }
+
+      // Light bulb: change the current preset/color
+      function bulbWriteColor(device, type, value, speed){
+        device.gatt.connect()
+        .then(server => server.getPrimaryService('0000ffe5-0000-1000-8000-00805f9b34fb'))
+        .then(service => service.getCharacteristic('0000ffe9-0000-1000-8000-00805f9b34fb'))
+        .then(characteristic => {
+          if(type == "preset"){
+            return characteristic.writeValue(Uint8Array.of(187,value,speed,68));
+          }
+          else if(type == "rgb"){
+            return characteristic.writeValue(Uint8Array.of(86,value[0],value[1],value[2],0,240,170));
+          }
+          else{
+            throw "Invalid preset type."
+          }
+        })
+        .then(_ => {
+          console.log('Color changed.');
+        })
+        .catch(error => { console.log(error); }
+        );
+      }
+
+      // Thingy: change the current LED color
+      function thingyWriteLEDColorConstant(device, color){
+        device.gatt.connect()
+        .then(server => {
+          return server.getPrimaryService("ef680300-9b35-4933-9b10-52ffa9740042");
+        })
+        .then(service => {
+          return service.getCharacteristic("ef680301-9b35-4933-9b10-52ffa9740042");
+        })
+        .then(characteristic => {
+          let array = rgbRange(color);
+          return characteristic.writeValue(Uint8Array.of(1, array[0], array[1], array[2]));
+        });
+      }
+
+      // Thingy : sound samples
+      function thingyWriteSoundSample(device, sample){
+        // enable sample mode
+        device.gatt.connect()
+        .then(server => {
+          return server.getPrimaryService("ef680500-9b35-4933-9b10-52ffa9740042");
+        })
+        .then(service => {
+          return service.getCharacteristic("ef680501-9b35-4933-9b10-52ffa9740042");
+        })
+        .then(characteristic => {
+          //sample mode, ADPCM
+          characteristic.writeValue(Uint8Array.of(3,1));
+        })
+        .catch(error => {
+        });
+        // play sound
+        device.gatt.connect()
+        .then(server => {
+          return server.getPrimaryService("ef680500-9b35-4933-9b10-52ffa9740042");
+        })
+        .then(service => {
+          return service.getCharacteristic("ef680502-9b35-4933-9b10-52ffa9740042");
+        })
+        .then(characteristic => {
+          characteristic.writeValue(Uint8Array.of(sample));
+        })
+        .catch(error => {
+        });
+      }
+
+      // Mood Auto: definition de la meilleure playlist selon l'heure et la température donnée par un Thingy
+      // Mood, Auto: defines the best playlist according to the time and the temperature (using a temperature sensor)
+      function definePlaylistAuto(){
+        let d = new Date();
+        let currentTime = d.toLocaleTimeString().replace(new RegExp(':', 'g'), '');
+
+        if(currentTime >= 0 && currentTime < 050000){
+          // peaceful
+          if(temperature > 20){
+            return paramPlaylist[9];
+          }
+          else {
+            return paramPlaylist[1];
+          }
+        }
+
+        else if (currentTime >= 050000 && currentTime < 110000){
+          // energy
+          if(temperature > 25){
+            return paramPlaylist[0];
+          }
+          else {
+            return paramPlaylist[8];
+          }
+
+        }
+
+        else if (currentTime >= 110000 && currentTime < 130000){
+          // tropical
+          if(temperature > 25){
+            return paramPlaylist[7];
+          }
+          else {
+            return paramPlaylist[6];
+          }
+
+        } else if (currentTime >= 130000 && currentTime < 170000){
+          // edm
+          if(temperature > 25){
+            return paramPlaylist[8];
+          }
+          else {
+            return paramPlaylist[3];
+          }
+
+        } else if (currentTime >= 170000 && currentTime < 210000){
+          // chill out
+          if(temperature > 20){
+            return paramPlaylist[7];
+          }
+          else {
+            return paramPlaylist[2];
+          }
+
+        } else if (currentTime >= 210000 && currentTime < 240000){
+          // calm
+          if(temperature > 20){
+            return paramPlaylist[0];
+          }
+          else {
+            return paramPlaylist[5];
+          }
+        }
+      }
+
+
+      // handle the notifications coming from a Thingy
+      function thingyHandleNotifications(event, scenario, characteristicName, characteristicUnit){
+        if(scenario == 1){
+          // Long press -> huge time difference between Press and Release
+          // Simple press -> small time difference between Press and Release
+          if(characteristicName == "Button"){
+            // if press
+            if(event.target.value.getUint8(0) == 1){
+
+              lastPressedFirstThingy = event.timeStamp;
+            }
+            // Long and simple push
+            // if release
+            else if(event.target.value.getUint8(0) == 0){
+              // compute the difference between the last press and that specific release
+              // Long press -> saved tracks
+              if(event.timeStamp - lastPressedFirstThingy > 300 && lastPressedFirstThingy != 0){
+                spotifyApi.getMyCurrentPlaybackState()
+                .then(
+                  function(data){
+                    if (data != null || data != undefined){
+                      console.log(data.item.id);
+                      spotifyApi.addToMySavedTracks([data.item.id], function(error, data){console.log("Track added to saved tracks.")});
+                      $.notify("Added to saved tracks", {className: "success", autoHide: true, autoHideDelay: 1000});
+                    }
+                  },
+                  function(err){console.log(err);});
+              }
+              // Simple press -> play/pause
+              else{
+                console.log("Play/Pause");
+                  if(isPlaying){
+                    spotifyApi.pause({spotifyCurrentDevice})
+                    .then(
+                      function(data){
+                        isPlaying = false;
+                        thingyWriteLEDColorConstant(devicesThingy[0],[255,0,0]);
+                        $.notify("Pause", {className: "success", autoHide: true, autoHideDelay: 1000});
+                      },
+                      function(err){
+                        isPlaying = !isPlaying;
+                        thingyWriteLEDColorConstant(devicesThingy[0], (isPlaying) ? [0,0,255] : [255,0,0]);
+                        console.log(err);
+                      });
+                  } else {
+                    spotifyApi.play({spotifyCurrentDevice})
+                    .then(
+                      function(data){
+                        isPlaying = true;
+                        thingyWriteLEDColorConstant(devicesThingy[0],[0,0,255]);
+                        $.notify("Play", {className:"success", autoHide: true, autoHideDelay: 1000});
+                      },
+                      function(err){
+                        isPlaying = !isPlaying;
+                        thingyWriteLEDColorConstant(devicesThingy[0], (isPlaying) ? [0,0,255] : [255,0,0]);
+                        console.log(err);
+                      });
+                  }
+              }
+              lastReleasedFirstThingy = event.timeStamp;
+            }
+          }
+          else if (characteristicName == "Gravity vector"){
+            let X = new Float32Array(event.target.value.buffer.slice(0,4))[0];
+            let Y = new Float32Array(event.target.value.buffer.slice(4,8))[0];
+            // Z-axis useless here
+
+            // left tilt -> previous track
+            if(Y <= -6){
+              console.log("left tilt");
+              if(!lateralTiltActivated){
+                spotifyApi.skipToPrevious({spotifyCurrentDevice})
+                .then(
+                  function(data){
+                    isPlaying = true;
+                    thingyWriteLEDColorConstant(devicesThingy[0],[0,0,255]);
+                    lateralTiltActivated = true;
+                    $.notify("Previous", {className: "success", autoHide: true, autoHideDelay: 1000});
+                  },
+                  function(err){console.log(err);}
+                );
+              }
+            }
+
+            // right tilt -> next track
+            else if(Y >= 6){
+              console.log("right tilt");
+              if(!lateralTiltActivated){
+                spotifyApi.skipToNext({spotifyCurrentDevice})
+                .then(
+                  function(data){
+                    lateralTiltActivated = true;
+                    isPlaying = true;
+                    thingyWriteLEDColorConstant(devicesThingy[0],[0,0,255]);
+                    $.notify("Next", {className: "success", autoHide: true, autoHideDelay: 1000});
+                  },
+                  function(err){console.log(err);
+                  }
+                );
+              }
+            }
+            // something else
+            else{
+              if(lateralTiltActivated){
+                lateralTiltActivated = false;
+              }
+            }
+            // down tilt -> fast backward
+            if(X <= -6){
+              console.log("down tilt");
+              if(!verticalTiltActivated){
+                spotifyApi.getMyCurrentPlaybackState()
+                .then(
+                  function(data){
+                    if(parseInt(data.progress_ms) - 2000 < 0){
+                      trackProgress = 0;
+                      trackDuration = parseInt(data.item.duration_ms);
+                      spotifyApi.seek(0, function(error,data){ console.log("Retour rapide");});
+                      $.notify("Fast backward", {className: "success", autoHide: true, autoHideDelay: 3000});
+                    }
+                    else{
+                      trackProgress = parseInt(data.progress_ms) - 2000;
+                      trackDuration = parseInt(data.item.duration_ms);
+                      spotifyApi.seek(parseInt(data.progress_ms) - 2000, function(error,data){ console.log("Retour rapide");});
+                      $.notify("Fast backward", {className: "success", autoHide: true, autoHideDelay: 3000});
+                    }
+
+                  },
+                  function(err){console.log(err);}
+                );
+              }
+              else{
+                if(trackProgress - 2000 < 0){
+                  spotifyApi.seek(0, function(error,data){trackProgress = 0; console.log("Retour rapide");});
+                }
+                else{
+                  spotifyApi.seek(trackProgress - 2000, function(error,data){trackProgress = trackProgress - 2000; console.log("Retour rapide");});
+                }
+              }
+              verticalTiltActivated = true;
+
+            }
+            // up tilt -> fast forward
+            else if(X >= 5){
+              console.log("up tilt");
+              // first incrémentation -> notification
+              if(!verticalTiltActivated){
+                spotifyApi.getMyCurrentPlaybackState()
+                .then(
+                  function(data){
+                    trackDuration = parseInt(data.item.duration_ms);
+                    if(parseInt(data.progress_ms) + 4000 > trackDuration){
+                      trackProgress = parseInt(data.progress_ms);
+                      $.notify("Fast forward", {className: "success", autoHide: true, autoHideDelay: 3000});
+                    }
+                    else{
+                      trackProgress = parseInt(data.progress_ms) + 2000;
+                      spotifyApi.seek(parseInt(data.progress_ms) + 2000, function(error,data){console.log("Avance rapide");});
+                      $.notify("Fast forward", {className: "success", autoHide: true, autoHideDelay: 3000});
+                    }
+                  },
+                  function(err){console.log(err);}
+                );
+              }
+              else {
+                // fast forward if the track progress is not close to the end of the track
+                if(trackProgress + 4000 <= trackDuration){
+                  spotifyApi.seek(trackProgress + 2000, function(error,data){trackProgress = trackProgress + 2000; console.log("Avance rapide");});
+                }
+              }
+              verticalTiltActivated = true;
+            }
+            else{
+              if(verticalTiltActivated){
+                verticalTiltActivated = false;
+              }
+            }
+          }
+        }
+
+        else if (scenario == 2){
+          if(characteristicName == "Button"){
+            // if press
+            if(event.target.value.getUint8(0) == 1){
+              lastPressedSecondThingy = event.timeStamp;
+            }
+
+            // Long and simple press
+            // if release
+            else if(event.target.value.getUint8(0) == 0){
+              // compute the time difference between the last press and that specific release
+              // Long press
+              if(event.timeStamp - lastPressedSecondThingy > 300 && lastPressedSecondThingy != 0){
+                // disabled
+                if(moodMode == 0){
+                  // exit disabled & prepare for manual
+                  moodMode = 1;
+                  thingyWriteLEDColorConstant(devicesThingy[1], [229,208,4]);
+                  spotifyApi.getMyCurrentPlayingTrack()
+                  .then(
+                    function(data){
+                      trackBeforeMood = data.context.uri;
+                    },
+                    function(err){
+                    }
+                  );
+
+                  spotifyApi.play({"context_uri": paramPlaylist[moodIndex].uri})
+                  .then(
+                    function(data){
+                      isPlaying = true;
+                      thingyWriteLEDColorConstant(devicesThingy[0],[0,0,255]);
+                      document.getElementById('mood-cover').innerHTML = paramPlaylist[moodIndex].cover;
+                      document.getElementById('mood-mood').innerHTML = "<b>Mood: </b>"+paramPlaylist[moodIndex].mood;
+                      document.getElementById('mood-playlist').innerHTML = "<b>Playlist: </b>"+paramPlaylist[moodIndex].playlistName;
+                      document.getElementById('mood-mode').innerHTML = "<b>Mode: </b>Manual";
+                      devicesBulb.forEach((value, index, array) => {
+                        bulbWriteColor(value, paramBulb[paramPlaylist[moodIndex].bulb].type, paramBulb[paramPlaylist[moodIndex].bulb].value, 5);
+                      });
+                    },
+                    function(err){
+                    }
+                  );
+
+                  // notification
+                  thingyWriteSoundSample(devicesThingy[1], 0);
+                }
+                // manual
+                else if(moodMode == 1){
+                  // exit manual & prepare for auto
+                  moodMode = 2;
+                  thingyWriteLEDColorConstant(devicesThingy[1], [96,0,160]);
+                  moodAutoPlaylist = definePlaylistAuto();
+                  spotifyApi.play({"context_uri": moodAutoPlaylist.uri})
+                  .then(
+                    function(data){
+                      isPlaying = true;
+                      thingyWriteLEDColorConstant(devicesThingy[0],[0,0,255]);
+                      document.getElementById('mood-mode').innerHTML = "<b>Mode: </b>Auto";
+                      document.getElementById('mood-cover').innerHTML = moodAutoPlaylist.cover;
+                      document.getElementById('mood-mood').innerHTML = "<b>Mood: </b>"+moodAutoPlaylist.mood;
+                      document.getElementById('mood-playlist').innerHTML = "<b>Playlist: </b>"+moodAutoPlaylist.playlistName;
+                      devicesBulb.forEach((value, index, array) => {
+                        bulbWriteColor(value, paramBulb[moodAutoPlaylist.bulb].type, paramBulb[moodAutoPlaylist.bulb].value, 5);
+                      });
+                    },
+                    function(err){
+                    }
+                  );
+                  // notification
+                  thingyWriteSoundSample(devicesThingy[1], 0);
+                }
+                // auto
+                else if(moodMode == 2){
+                  // exit auto & prepare for disabled
+
+                  spotifyApi.play({"context_uri": trackBeforeMood})
+                  .then(
+                    function(data){
+                      isPlaying = true;
+                      thingyWriteLEDColorConstant(devicesThingy[0],[0,0,255]);
+                      document.getElementById('mood-mode').innerHTML = "<b>Mode: </b>Disabled";
+                      document.getElementById('mood-cover').innerHTML = "";
+                      document.getElementById('mood-mood').innerHTML = "";
+                      document.getElementById('mood-playlist').innerHTML = "";
+                      thingyWriteLEDColorConstant(devicesThingy[1], [0,255,0]);
+                      moodMode = 0;
+                    },
+                    function(err){
+                    }
+                  );
+
+                  // notification
+                  thingyWriteSoundSample(devicesThingy[1], 1);
+
+                }
+              }
+              // Simple press
+              else{
+                if(moodMode == 0){
+                  // next bulb preset
+                  bulbPreset = (bulbPreset + 1) % paramBulb.length;
+                  devicesBulb.forEach((value, index, array) => {
+                    bulbWriteColor(value, paramBulb[bulbPreset].type, paramBulb[bulbPreset].value, 5);
+                  });
+                }
+                else if(moodMode == 1){
+                  // next mood (playlist and bulb preset)
+                  spotifyApi.play({"context_uri": paramPlaylist[(moodIndex+1)%paramPlaylist.length].uri})
+                  .then(
+                    function(data){
+                      isPlaying = true;
+                      thingyWriteLEDColorConstant(devicesThingy[0],[0,0,255]);
+                      moodIndex = (moodIndex+1)%paramPlaylist.length;
+                      console.log(paramPlaylist[moodIndex].mood);
+                      document.getElementById('mood-cover').innerHTML = paramPlaylist[moodIndex].cover;
+                      document.getElementById('mood-mood').innerHTML = "<b>Mood: </b>"+paramPlaylist[moodIndex].mood;
+                      document.getElementById('mood-playlist').innerHTML = "<b>Playlist: </b>"+paramPlaylist[moodIndex].playlistName;
+                      devicesBulb.forEach((value, index, array) => {
+                        bulbWriteColor(value, paramBulb[paramPlaylist[moodIndex].bulb].type, paramBulb[paramPlaylist[moodIndex].bulb].value, 5);
+                      });
+                    },
+                    function(err){
+                    }
+                  );
+                }
+              }
+              lastReleasedSecondThingy = event.timeStamp;
+            }
+          }
+          else if (characteristicName == "Temperature"){
+            let a = [];
+            for (let i = 0; i < event.target.value.byteLength; i++) {
+              a.push(event.target.value.getUint8(i));
+            }
+            temperature = parseFloat(a.toString().replace(',','.'));
+            console.log(temperature);
+          }
+
+        }
+      }
+  </script>
+  </body>
+</html>
